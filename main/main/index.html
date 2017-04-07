@@ -1,0 +1,448 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Linking to Data Table</title> 
+    <!-- http://syntagmatic.github.com/parallel-coordinates/ -->
+    
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/css/bootstrap-select.min.css">
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/js/bootstrap-select.min.js"></script>
+    <!-- (Optional) Latest compiled and minified JavaScript translation files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/js/i18n/defaults-*.min.js"></script>
+
+
+
+    <link rel="stylesheet" type="text/css" href="style.css">
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.4.13/d3.min.js"></script>
+    <script src="d3.parcoords.js"></script>
+    <script src="examples/lib/underscore.js"></script>
+    <script src="examples/lib/underscore.math.js"></script>
+    <script src="divgrid.js"></script>
+
+
+  </head>
+
+  <body>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="#">World Universities</a>
+        </div>
+        <div class="nav navbar-brand">
+          <select class="btn btn-info" id='one' data-style="btn-info" onchange='onchange_years()'></select>
+          <select class="btn btn-info" id="yo" data-style="btn-info" data-live-search="true" onchange='onchange()'></select>
+        </div>
+        
+      </div>
+    </nav>
+
+    
+    
+
+    <div id="example" class="parcoords"></div>
+    <div id="grid"></div>
+
+
+    <script id="brushing">// quantitative colour scale
+
+    var global;
+    var global1;
+
+
+    var green_to_blue = d3.scale.linear()
+      .domain([-2,-0.5,0.5,2])
+      .range(["#7DDF64", "#999", "#999", "brown"])
+      .interpolate(d3.interpolateLab);
+
+    var color = function(d) { return green_to_blue(d['world_rank']); };
+
+    var parcoords = d3.parcoords()("#example")
+      .color(color)
+      .alpha(0.6)
+      .margin({ top: 30, left: 0, bottom: 40, right: 0 })
+      .mode("queue")
+      .rate(5)
+      .render();
+
+
+
+
+
+    var years = ['2014','2015','2016'];
+
+    years.unshift('Choose Year (Default 2016)');
+
+
+    // var select_years = d3.select('body')
+    //   .append('select')
+    //     .attr('class','select')
+    //     .on('change',onchange_years)
+
+    year_change('2016');
+
+    var select_years = d3.select('select');
+
+    var options_years = select_years
+      .selectAll('option')
+      .data(years).enter()
+      .append('option')
+        .text(function (d) { return d; });
+
+    // var select = d3.select('body')
+    //     .append('select')
+    //     .attr('class','select')
+    //     .attr('id','yo')
+    //     .on('change',onchange);
+
+    function onchange_years() {
+
+      selectValue_years = d3.select('select').property('value')
+
+
+    //   data.forEach(function(p,i) {
+
+    //   if (p['university_name'] === global){
+    //     global1 = i;
+    //   }
+    // })
+
+    year_change(selectValue_years)
+
+    }
+
+
+
+
+    function year_change(year){
+
+      var y = 'new' + year + '.csv';
+
+    // load csv file and create the chart
+    d3.csv(y, function(data) {
+
+    var firstCell = data.map(function(d){return d3.values(d)[0]});
+    var textLength = 0;
+    firstCell.forEach(function(d){
+      if (d.length > textLength) textLength = d.length;
+    });
+
+
+
+
+    var grid = d3.divgrid();
+
+
+    var data1 = data.map(function(p) {return p['university_name'];});
+
+    data1.unshift('Top 10');
+    data1.unshift('Choose a Filter');
+
+      
+    // var select = d3.select('body')
+    //   .append('select')
+    //     .attr('class','select')
+    //     .on('change',onchange)
+
+    var grid_dom = document.getElementById('grid');
+    grid_dom.innerHTML='';
+
+
+    document.getElementById("yo").innerHTML='';
+
+    var select = d3.select(document.getElementById("yo"));
+
+    var options = select
+      .selectAll('option')
+      .data(data1).enter()
+      .append('option')
+        .text(function (d) { return d; });
+
+    select.on('change',onchange);
+
+    function onchange() {
+      var e = document.getElementById("yo")
+      selectValue = d3.select(e).property('value')
+      global = selectValue;
+      d3.select('body')
+        .append('p')
+
+      data.forEach(function(p,i) {
+
+      if (p['university_name'] === global){
+        global1 = i;
+      }
+    })
+
+      if (selectValue === 'Top 10'){
+        d3.select("#grid")
+        .datum(data.slice(0,10))
+        // .datum(global1)
+        .call(grid)
+        .selectAll(".row")
+        .on({
+          "mouseover": function(d) { parcoords.highlight([d]) },
+          "mouseout": parcoords.unhighlight
+        });
+      }
+
+      else{
+
+      d3.select("#grid")
+        .datum(data.slice(global1,global1+1))
+        // .datum(global1)
+        .call(grid)
+        .selectAll(".row")
+        .on({
+          "mouseover": function(d) { parcoords.highlight([d]) },
+          "mouseout": parcoords.unhighlight
+        });
+      }
+
+    }
+
+
+
+      parcoords
+        .data(data)
+        .render()
+        .brushMode("1D-axes")  // enable brushing
+        .interactive();
+
+
+      change_color("weight (lb)");
+
+      // click label to activate coloring
+      parcoords.svg.selectAll(".dimension")
+        .on("click", change_color)
+        .selectAll(".label")
+        .style("font-size", "14px");
+
+      // create data table, row hover highlighting
+      
+    var instructions = "-Click a label to color data based on axis values. -Double click to invert axis. -Hover on each line to highlight. -Drag around axis to begin brush. -Click axis to clear brush.  ";
+
+    d3.select("#example svg").append("text")
+      .text(instructions)
+      .attr("text-anchor", "middle")
+      .attr("font-weight","bold")
+      .attr("text-decoration", "overline")
+      .attr("transform", "translate(" + parcoords.width()/2 + "," + (parcoords.height()-5) + ")");;
+
+    d3.select("#example svg")
+      .on("mousemove", function() {
+          var mousePosition = d3.mouse(this);         
+          highlightLineOnClick(mousePosition, true); //true will also add tooltip
+      })
+      .on("mouseout", function(){
+        cleanTooltip();
+        parcoords.unhighlight();
+      });
+
+    function getCentroids(data){
+      // this function returns centroid points for data. I had to change the source
+      // for parallelcoordinates and make compute_centroids public.
+      // I assume this should be already somewhere in graph and I don't need to recalculate it
+      // but I couldn't find it so I just wrote this for now
+      var margins = parcoords.margin();
+      var graphCentPts = [];
+      
+      data.forEach(function(d){
+        
+        var initCenPts = parcoords.compute_centroids(d).filter(function(d, i){return i%2==0;});
+        
+        // move points based on margins
+        var cenPts = initCenPts.map(function(d){
+          return [d[0] + margins["left"], d[1]+ margins["top"]]; 
+        });
+        graphCentPts.push(cenPts);
+      });
+      return graphCentPts;
+    }
+
+    function getActiveData(){
+      // I'm pretty sure this data is already somewhere in graph
+      if (parcoords.brushed()!=false) return parcoords.brushed();
+      return parcoords.data();
+    }
+
+    function isOnLine(startPt, endPt, testPt, tol){
+      // check if test point is close enough to a line
+      // between startPt and endPt. close enough means smaller than tolerance
+      var x0 = testPt[0];
+      var y0 = testPt[1];
+      var x1 = startPt[0];
+      var y1 = startPt[1];
+      var x2 = endPt[0];
+      var y2 = endPt[1];
+      var Dx = x2 - x1;
+      var Dy = y2 - y1;
+      var delta = Math.abs(Dy*x0 - Dx*y0 - x1*y2+x2*y1)/Math.sqrt(Math.pow(Dx, 2) + Math.pow(Dy, 2)); 
+      //console.log(delta);
+      if (delta <= tol) return true;
+      return false;
+    }
+
+    function findAxes(testPt, cenPts){
+      // finds between which two axis the mouse is
+      var x = testPt[0];
+      var y = testPt[1];
+      // make sure it is inside the range of x
+      if (cenPts[0][0] > x) return false;
+      if (cenPts[cenPts.length-1][0] < x) return false;
+      // find between which segment the point is
+      for (var i=0; i<cenPts.length; i++){
+        if (cenPts[i][0] > x) return i;
+      }
+    }
+
+
+    function cleanTooltip(){
+      // removes any object under #tooltip is
+      parcoords.svg.selectAll("#tooltip")
+          .remove();
+    }
+    function addTooltip(clicked, clickedCenPts){
+      
+      // sdd tooltip to multiple clicked lines
+        var clickedDataSet = [];
+        var margins = parcoords.margin()
+        // get all the values into a single list
+        // I'm pretty sure there is a better way to write this is Javascript
+        for (var i=0; i<clicked.length; i++){
+          for (var j=0; j<clickedCenPts[i].length; j++){
+            var text = d3.values(clicked[i])[j];
+            // not clean at all!
+            var x = clickedCenPts[i][j][0] - margins.left;
+            var y = clickedCenPts[i][j][1] - margins.top;
+            clickedDataSet.push([x, y, text]);
+        }
+      };
+
+      // add rectangles
+      var fontSize = 14;
+      var padding = 2;
+      var rectHeight = fontSize + 2 * padding; //based on font size
+      parcoords.svg.selectAll("rect[id='tooltip']")
+              .data(clickedDataSet[0]).enter()
+              .append("rect")
+              .attr("x", clickedDataSet[0][0] - clickedDataSet[0][2].length * 5 + 110)
+          .attr("y", clickedDataSet[0][1] - rectHeight + 2 * padding)
+          .attr("rx", "1")
+          .attr("ry", "1")
+          .attr("id", "tooltip")
+          .attr("fill", "grey")
+          .attr("opacity", 0.2)
+          .attr("width", clickedDataSet[0][2].length * 10)
+          .attr("height", rectHeight);
+      // add text on top of rectangle
+      parcoords.svg.selectAll("text[id='tooltip']")
+          .data(clickedDataSet[0]).enter()
+            .append("text")
+          .attr("x", clickedDataSet[0][0] + 110)
+          .attr("y", clickedDataSet[0][1])
+          .attr("id", "tooltip")
+          .attr("fill", "white")
+          .attr("text-anchor", "middle")
+          .attr("font-size", fontSize)
+              .text( clickedDataSet[0][2])    
+    }
+    function getClickedLines(mouseClick){
+        var clicked = [];
+        var clickedCenPts = [];
+      // find which data is activated right now
+      var activeData = getActiveData();
+      // find centriod points
+      var graphCentPts = getCentroids(activeData);
+        if (graphCentPts.length==0) return false;
+      // find between which axes the point is
+        var axeNum = findAxes(mouseClick, graphCentPts[0]);
+        if (!axeNum) return false;
+        
+        graphCentPts.forEach(function(d, i){
+          if (isOnLine(d[axeNum-1], d[axeNum], mouseClick, 2)){
+            clicked.push(activeData[i]);
+            clickedCenPts.push(graphCentPts[i]); // for tooltip
+          }
+      });
+      
+      return [clicked, clickedCenPts]
+    }
+    function highlightLineOnClick(mouseClick, drawTooltip){
+      
+      var clicked = [];
+        var clickedCenPts = [];
+      
+      clickedData = getClickedLines(mouseClick);
+      if (clickedData && clickedData[0].length!=0){
+        clicked = clickedData[0];
+          clickedCenPts = clickedData[1];
+          // highlight clicked line
+          parcoords.highlight(clicked);
+        
+        if (drawTooltip){
+          // clean if anything is there
+          cleanTooltip();
+            // add tooltip
+            addTooltip(clicked, clickedCenPts);
+        }
+      }
+    };
+
+
+
+      // update data table on brush event
+      parcoords.on("brush", function(d) {
+        d3.select("#grid")
+          .datum(d.slice(0,10))
+          .call(grid)
+          .selectAll(".row")
+          .on({
+            "mouseover": function(d) { parcoords.highlight([d]) },
+            "mouseout": parcoords.unhighlight
+          });
+      });
+    });
+
+
+    }
+
+
+
+    // update color
+    function change_color(dimension) {
+      parcoords.svg.selectAll(".dimension")
+        .style("font-weight", "normal")
+        .filter(function(d) { return d == dimension; })
+        .style("font-weight", "bold")
+
+      parcoords.color(zcolor(parcoords.data(),dimension)).render()
+    }
+
+    // return color function based on plot and dimension
+    function zcolor(col, dimension) {
+      var z = zscore(_(col).pluck(dimension).map(parseFloat))
+      return function(d) { return green_to_blue(z(d[dimension])) }
+    };
+
+    function zscore(col) {
+      var n = col.length,
+          mean = _(col).mean(),
+          sigma = _(col).stdDeviation();
+      return function(d) {
+        return (d-mean)/sigma;
+      };
+    };
+
+
+
+    </script>
+  </body>
+</html>
